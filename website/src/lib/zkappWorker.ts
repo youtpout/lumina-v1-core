@@ -1,6 +1,11 @@
-import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, TokenId, UInt32, UInt64, UInt8, fetchAccount } from "o1js";
+import { Account, AccountUpdate, Bool, Mina, PrivateKey, PublicKey, TokenId, UInt32, UInt64, UInt8, fetchAccount, setProofSystemBackend } from "o1js";
 
 console.log('Load Web Worker.');
+
+// Route proving to the Rust Pickles wasm backend. Must run before the first
+// compile. In the browser only the wasm transport exists, so this selects
+// rust-wasm.
+setProofSystemBackend('rust');
 
 import { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } from "../../../contracts/src/index";
 import { fetchFiles, readCache } from "./cache";
