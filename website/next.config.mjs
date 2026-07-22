@@ -45,14 +45,6 @@ const nextConfig = {
       },
     ];
   },
-  async rewrites() {
-    return [
-      {
-        source: '/graphql/:path*',
-        destination: `https://devnet.minaprotocol.network/graphql/:path*`,
-      },
-    ]
-  },
 };
 
 export default nextConfig;

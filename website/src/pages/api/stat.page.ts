@@ -42,6 +42,7 @@ async function exportZeko() {
         const allEvents = [];
         for (let index = 0; end < 2700n; index++) {
             end += 500n;
+            // @ts-ignore
             const events = await fetchEvents({ publicKey: poolAddress.toBase58() }, "https://devnet.zeko.io/graphql", { from: UInt32.from(start), to: UInt32.from(end) });
             allEvents.push(...events);
             start += 500n;

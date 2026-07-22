@@ -9,7 +9,6 @@ import Liquidity from "./Liquidity";
 import Swap from "./Swap";
 import Withdraw from "./Withdraw";
 import Faucet from "./Faucet";
-import SwapServer from "./SwapServer";
 import TabButton from "./TabButton";
 import Create from "./Create";
 import useAccount from "@/states/useAccount";
@@ -47,9 +46,6 @@ const Tab = () => {
                         </div>}
                         {tab === "faucet" && <div>
                             <Faucet accountState={accountState}></Faucet>
-                        </div>}
-                        {tab === "server" && <div>
-                            <SwapServer accountState={accountState}></SwapServer>
                         </div>}
                         {tab === "create" && <div>
                             <Create accountState={accountState}></Create>

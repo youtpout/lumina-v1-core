@@ -30,6 +30,7 @@ const Stat = () => {
         const allEvents = [];
         for (let index = 0; end < 362084n; index++) {
             end += 100n;
+            // @ts-ignore
             const events = await fetchEvents({ publicKey: element.poolAddress }, 'https://api.minascan.io/archive/devnet/v1/graphql', { from: UInt32.from(start), to: UInt32.from(end) });
             allEvents.push(...events);
             start += 100n;
@@ -43,6 +44,7 @@ const Stat = () => {
         const allEvents = [];
         for (let index = 0; start < 362084n; index++) {
 
+            // @ts-ignore
             const events = await fetchEvents({ publicKey: element.poolAddress }, 'https://api.minascan.io/archive/devnet/v1/graphql', { from: UInt32.from(start) });
             allEvents.push(...events);
             if (events.length) {

@@ -1,10 +1,12 @@
-import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, Signature, UInt32, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, setProofSystemBackend, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool, getAmountLiquidityOutUint } from '../index';
 import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, UpdateSignerData } from '../pool/Multisig';
 
-let proofsEnabled = false;
+let proofsEnabled = true;
+
+setProofSystemBackend('rust');
 
 describe('Pool Factory Mina', () => {
   let deployerAccount: Mina.TestPublicKey,

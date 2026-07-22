@@ -45,7 +45,7 @@ const functions = {
     const devnet = Mina.Network(
       {
         networkId: "testnet",
-        mina: currentLocation + "/api/proxy",
+        mina: "https://api.minascan.io/node/devnet/v1/graphql",
         archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
       }
     );
@@ -72,7 +72,9 @@ const functions = {
     const { PoolFactory, Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet } = await import("../../../contracts/build/src/index");
     // @ts-ignore
     state.PoolMina = Pool;
+    // @ts-ignore
     state.PoolFactory = PoolFactory;
+    // @ts-ignore
     state.PoolMinaHolder = PoolTokenHolder;
     state.TokenStandard = FungibleToken;
     state.TokenAdmin = FungibleTokenAdmin;
@@ -142,6 +144,7 @@ const functions = {
 
     const transaction = await Mina.transaction(userKey, async () => {
       AccountUpdate.fundNewAccount(userKey, 4);
+      // @ts-ignore
       await state.zkFactory!.createPool(poolKey.toPublicKey(), tokenKey);
     });
     state.transaction = transaction;
@@ -168,6 +171,7 @@ const functions = {
       await zkToken.deploy({
         symbol: args.symbol,
         src: "https://github.com/MinaFoundation/mina-fungible-token/blob/main/FungibleToken.ts",
+        allowUpdates: true
       });
       await zkToken.initialize(
         tokenAdminPublic,
