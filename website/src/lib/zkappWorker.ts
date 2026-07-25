@@ -42,11 +42,15 @@ const frontendFee = 10;
 const functions = {
   setActiveInstanceToDevnet: async (args: {}) => {
     let currentLocation = self.location.origin;
+    // Auro's node answers the heavy calls minascan stalls on: a zkApp
+    // broadcast there hangs for a minute before returning a 502. The archive
+    // stays on the same host for lack of a reachable devnet archive; nothing
+    // in the app reads it since the pool list moved to the Lumina CDN.
     const devnet = Mina.Network(
       {
         networkId: "testnet",
-        mina: "https://api.minascan.io/node/devnet/v1/graphql",
-        archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
+        mina: "https://mina-devnet-graphql.aurowallet.com/graphql",
+        archive: "https://mina-devnet-graphql.aurowallet.com/graphql"
       }
     );
     state.isZeko = false;
