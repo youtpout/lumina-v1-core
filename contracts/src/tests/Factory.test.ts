@@ -1,4 +1,4 @@
-import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, setProofSystemBackend, Signature, UInt32, UInt64, UInt8 } from 'o1js';
+import { AccountUpdate, Bool, fetchAccount, Field, MerkleMap, Mina, Poseidon, PrivateKey, Provable, PublicKey, setBackend, setProofSystemBackend, Signature, UInt32, UInt64, UInt8 } from 'o1js';
 
 
 import { FungibleTokenAdmin, FungibleToken, mulDiv, PoolFactory, PoolTokenHolder, Pool, getAmountLiquidityOutUint } from '../index';
@@ -6,7 +6,15 @@ import { allRight, deployPoolRight, Multisig, MultisigInfo, SignatureInfo, Updat
 
 let proofsEnabled = true;
 
-setProofSystemBackend('rust');
+// Backend under test. The defaults reproduce the historical run (rust over
+// the default transport); the suite is parameterised so the same assertions
+// can be replayed on every backend and their verification keys compared.
+const proofSystem = (process.env.O1JS_TEST_PROOF_SYSTEM ?? 'rust') as 'rust' | 'jsoo';
+const transport = process.env.O1JS_TEST_TRANSPORT as 'wasm' | 'native' | undefined;
+setProofSystemBackend(proofSystem);
+if (transport !== undefined) {
+  setBackend(transport);
+}
 
 describe('Pool Factory Mina', () => {
   let deployerAccount: Mina.TestPublicKey,
@@ -45,12 +53,19 @@ describe('Pool Factory Mina', () => {
 
     if (proofsEnabled) {
       console.time('compile pool');
-      await FungibleTokenAdmin.compile();
-      await FungibleToken.compile();
-      await PoolFactory.compile();
-      await Pool.compile();
-      await PoolTokenHolder.compile();
+      const compiled = {
+        FungibleTokenAdmin: await FungibleTokenAdmin.compile(),
+        FungibleToken: await FungibleToken.compile(),
+        PoolFactory: await PoolFactory.compile(),
+        Pool: await Pool.compile(),
+        PoolTokenHolder: await PoolTokenHolder.compile(),
+      };
       console.timeEnd('compile pool');
+      for (const [name, result] of Object.entries(compiled)) {
+        console.log(
+          `@@VK@@ ${proofSystem}-${transport ?? 'default'} ${name} ${(result as any).verificationKey.hash.toString()}`
+        );
+      }
     }
 
     function getGates(analyze: any) {
