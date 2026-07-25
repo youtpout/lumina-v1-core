@@ -1,5 +1,5 @@
 import fs from 'fs/promises';
-import { Cache, setProofSystemBackend } from 'o1js';
+import { Cache, setBackend, setProofSystemBackend } from 'o1js';
 import { Pool, PoolTokenHolder, FungibleToken, FungibleTokenAdmin, Faucet, PoolFactory } from '../index.js';
 import path from 'path';
 
@@ -10,6 +10,9 @@ import path from 'path';
 // recorded-program entries plus the shared SRS/Lagrange bases, so only those
 // (no `-pk-` prover keys) need to be shipped in public/cache.
 setProofSystemBackend('rust');
+// Generate through the same transport the browser uses, so the entries are
+// exactly the ones it will read back.
+setBackend('wasm');
 
 // Start from a clean cache so no stale jsoo entries survive.
 await fs.rm('./cache', { recursive: true, force: true });
@@ -25,12 +28,32 @@ const contracts: [string, any][] = [
 ];
 
 const vkHashes: Record<string, string> = {};
-for (let index = 0; index < 6; index++) {
-    // Compile several times so every SRS/Lagrange size lands in the cache.
-    for (const [name, contract] of contracts) {
-        const { verificationKey } = await contract.compile({ cache });
-        vkHashes[name] = verificationKey.hash.toString();
-    }
+// One pass is enough: writing a cache entry now builds a Lagrange basis that
+// has not been materialized yet, instead of skipping it. Before that, a basis
+// whose domain only shows up while proving could never be written by a script
+// that merely compiles, and repeating the compile just hoped to stumble on it.
+for (const [name, contract] of contracts) {
+    const { verificationKey } = await contract.compile({ cache });
+    vkHashes[name] = verificationKey.hash.toString();
+}
+
+// Fail loudly rather than shipping a cache that makes every visitor rebuild
+// what is missing.
+const written = await fs.readdir('./cache');
+const expected = [
+    'srs-fp-65536',
+    'srs-fq-32768',
+    ...[512, 1024, 2048, 4096, 8192, 16384, 32768, 65536].map(d => `lagrange-basis-fp-${d}`),
+    ...[8192, 16384, 32768].map(d => `lagrange-basis-fq-${d}`),
+];
+const missing = expected.filter(name => !written.includes(name));
+const programs = written.filter(name => name.startsWith('recorded-base-program-')).length;
+console.log(`cache: ${programs} program entries, ${expected.length - missing.length}/${expected.length} SRS+Lagrange entries`);
+if (missing.length) {
+    throw new Error(`incomplete cache, missing: ${missing.join(', ')}`);
+}
+if (programs < contracts.length) {
+    throw new Error(`expected one program entry per contract, got ${programs}`);
 }
 
 console.log('--- verification key hashes (rust backend) ---');

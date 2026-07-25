@@ -17,7 +17,11 @@ export const fetchFiles = async () => {
             fetch(`${currentLocation}/cache/${file}.txt`, {
                 cache: "force-cache",
                 headers
-            }).then(res => res.arrayBuffer())
+                // Uint8Array, not ArrayBuffer: o1js hands these bytes straight
+                // to wasm-bindgen, which needs `length`/`set` on the value.
+                // Text entries survive either way (TextDecoder accepts both),
+                // which is why the jsoo-only cache never exposed this.
+            }).then(res => res.arrayBuffer()).then(buffer => new Uint8Array(buffer))
         ]).then(([data]) => ({ file, data }));
     }))
         .then((cacheList) => cacheList.reduce((acc: any, { file, data }) => {
@@ -37,20 +41,7 @@ export const readCache = (files: any): any => ({
 
         console.log("load : ", persistentId);
 
-        if (dataType === 'string') {
-            const data = files[persistentId].data;
-            // const hash = crypto.createHash('sha1').update(data).digest('hex');
-            // console.log(persistentId + " hash", hash);
-            return data;
-        }
-        else {
-            const data = files[persistentId].data;
-            // const hash = crypto.createHash('sha1').update(data).digest('hex');
-            // console.log(persistentId + " hash", hash);
-            return data;
-        }
-        console.log("data type not string : ", persistentId);
-        return undefined;
+        return files[persistentId].data;
     },
     write({ persistentId, uniqueId, dataType }: any, data: any) {
         console.log('write');
@@ -78,20 +69,7 @@ export const readCache2 = async (): Promise<any> => ({
 
         console.log("load : ", persistentId);
 
-        if (dataType === 'string') {
-            const data = currentId.arrayBuffer();
-            // const hash = crypto.createHash('sha1').update(data).digest('hex');
-            // console.log(persistentId + " hash", hash);
-            return data;
-        }
-        else {
-            const data = currentId.arrayBuffer();
-            // const hash = crypto.createHash('sha1').update(data).digest('hex');
-            // console.log(persistentId + " hash", hash);
-            return data;
-        }
-        console.log("data type not string : ", persistentId);
-        return undefined;
+        return new Uint8Array(await currentId.arrayBuffer());
     },
     write({ persistentId, uniqueId, dataType }: any, data: any) {
         console.log('write');
