@@ -1,5 +1,3 @@
-import { ZKFACTORY_ADDRESS } from "@/components/Layout";
-import { fetchAccount, fetchEvents, Field, Mina, PublicKey } from "o1js";
 
 export const poolToka = "B62qjWz1KNji4cf7ok2dur9iLPPrmy1DrpwhXP3iUbzCLjAWi6f2eHy";
 //export const poolWeth = "B62qphnhqrRW6DFFR39onHNKnBcoB9Gqi3M8Emytg26nwZWUYXR1itw";
@@ -30,49 +28,39 @@ export class Addresses {
             return Addresses.listDevnet;
         }
 
-        if (isZeko) {
-            const zeko = Mina.Network(
-                {
-                    networkId: "testnet",
-                    mina: "https://devnet.zeko.io/graphql",
-                    archive: "https://devnet.zeko.io/graphql"
+        // Pools come from the Lumina CDN, which indexes the factory events and
+        // republishes them several times a day. Reading them from an archive
+        // node instead made the list only as available as that node: the public
+        // devnet archives are currently unreachable, and a plain node cannot
+        // stand in because it does not serve `events` at all.
+        const chainId = isZeko ? "zeko:testnet" : "mina:devnet";
+        const newList = [];
+        try {
+            const response = await fetch(`https://cdn.luminadex.com/api/${chainId}/pools`);
+            if (!response.ok) {
+                throw new Error(`pool list responded ${response.status}`);
+            }
+            const pools = await response.json();
+            for (const pool of pools) {
+                // Every pool pairs MINA with one token; that token names the pool.
+                const token = pool.tokens?.find((t: any) => t.tokenId !== "MINA");
+                if (!token) {
+                    continue;
                 }
-            );
-            Mina.setActiveInstance(zeko);
-        } else {
-            const devnet = Mina.Network(
-                {
-                    networkId: "testnet",
-                    mina: window.location.origin + "/api/proxy",
-                    archive: 'https://api.minascan.io/archive/devnet/v1/graphql'
-                }
-            );
-            Mina.setActiveInstance(devnet);
-        }
-
-        const events = await fetchEvents({ publicKey: ZKFACTORY_ADDRESS });
-        console.log("events", events);
-        const newList = []
-        if (events?.length) {
-
-            for (let index = 0; index < events.length; index++) {
-                const x = events[index];
-                const data = x.events[0].data;
-                const poolAddress = PublicKey.fromFields([Field.from(data[2]), Field.from(data[3])]);
-                const tokenAddress = PublicKey.fromFields([Field.from(data[4]), Field.from(data[5])]);
-                const tokenAccount = await fetchAccount({ publicKey: tokenAddress });
-                const symbol = tokenAccount?.account?.tokenSymbol;
-
                 newList.push({
-                    "address": tokenAddress.toBase58(),
-                    "poolAddress": poolAddress.toBase58(),
+                    "address": token.address,
+                    "poolAddress": pool.address,
                     "chainId": isZeko ? "zeko-devnet" : "mina-devnet",
-                    "symbol": symbol,
-                    "decimals": 9,
+                    "symbol": token.symbol,
+                    "decimals": token.decimals ?? 9,
                     "approved": false,
-                    "blockHeight": x.blockHeight.toBigint()
+                    "timestamp": pool.timestamp
                 });
             }
+        } catch (error) {
+            // Surface the reason: an empty list is otherwise indistinguishable
+            // from a chain with no pools.
+            console.error("failed to load the pool list", error);
         }
         console.log("list", newList);
         if (isZeko) {
