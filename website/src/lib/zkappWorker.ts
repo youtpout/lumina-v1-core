@@ -86,14 +86,21 @@ const functions = {
   },
   compileContract: async (args: {}) => {
     console.time("compile");
-    const cacheFiles = await fetchFiles();
+    const step = async (label: string, run: () => Promise<unknown>) => {
+      const t0 = performance.now();
+      await run();
+      console.log(`compile:${label}`, Math.round(performance.now() - t0), "ms");
+    };
+
+    let cacheFiles: any;
+    await step("fetch", async () => { cacheFiles = await fetchFiles(); });
     const cache = readCache(cacheFiles);
 
     //await state.TokenAdmin?.compile({ cache });
-    await state.TokenStandard?.compile({ cache });
+    await step("FungibleToken", () => state.TokenStandard!.compile({ cache }));
     //  await state.PoolFactory!.compile({ cache });
-    await state.PoolMinaHolder!.compile({ cache });
-    await state.PoolMina!.compile({ cache });
+    await step("PoolTokenHolder", () => state.PoolMinaHolder!.compile({ cache }));
+    await step("Pool", () => state.PoolMina!.compile({ cache }));
     //await state.Faucet!.compile({ cache });
 
     console.timeEnd("compile");
